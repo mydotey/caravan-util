@@ -10,7 +10,7 @@
 	<version>2.0.0</version>
 	<packaging>jar</packaging>
 	<name>caravan-util</name>
-	<description>simple configuration facade</description>
+	<description>Caravan Util</description>
 	<url>https://github.com/mydotey/caravan-util</url>
 
 	<licenses>
