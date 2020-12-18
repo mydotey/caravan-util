@@ -8,6 +8,7 @@ import org.mydotey.scf.util.PropertyKeyGenerator;
 import org.mydotey.java.BooleanExtension;
 import org.mydotey.scf.Property;
 import org.mydotey.scf.facade.StringProperties;
+import org.mydotey.scf.filter.AbstractValueFilter;
 import org.mydotey.scf.filter.PipelineValueFilter;
 import org.mydotey.scf.type.string.StringInplaceConverter;
 import org.mydotey.scf.type.string.StringToLongConverter;
@@ -43,12 +44,20 @@ class DefaultRateLimiter implements RateLimiter {
         propertyKey = PropertyKeyGenerator.generatePropertyKey(_rateLimiterId,
             RateLimiterConfig.RATE_LIMIT_MAP_PROPERTY_KEY);
         _rateLimitMapProperty = properties.getMapProperty(propertyKey, new HashMap<>(), StringInplaceConverter.DEFAULT,
-            StringToLongConverter.DEFAULT, v -> {
-                Map<String, Long> result = new HashMap<>();
-                for (Map.Entry<String, Long> item : v.entrySet()) {
-                    result.put(item.getKey(), rateLimitValueCorrector.apply(item.getValue()));
+            StringToLongConverter.DEFAULT, new AbstractValueFilter<Map<String, Long>>() {
+                @Override
+                public Map<String, Long> apply(Map<String, Long> v) {
+                    Map<String, Long> result = new HashMap<>();
+                    for (Map.Entry<String, Long> item : v.entrySet()) {
+                        result.put(item.getKey(), rateLimitValueCorrector.apply(item.getValue()));
+                    }
+                    return result;
                 }
-                return result;
+
+                @Override
+                public boolean equals(Object obj) {
+                    return obj != null && this.getClass() == obj.getClass();
+                }
             });
 
         _counterBuffer = new CounterBuffer<>(rateLimiterConfig.bufferConfig());
