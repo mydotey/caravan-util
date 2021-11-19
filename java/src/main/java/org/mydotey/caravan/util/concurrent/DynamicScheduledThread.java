@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mydotey.scf.util.PropertyKeyGenerator;
 import org.mydotey.caravan.util.defensive.Loops;
+import org.mydotey.java.InterruptedRuntimeException;
 import org.mydotey.java.ObjectExtension;
 import org.mydotey.java.StringExtension;
 import org.mydotey.java.ThreadExtension;
@@ -45,33 +46,38 @@ public class DynamicScheduledThread extends Thread {
 
     @Override
     public final void run() {
-        int initdelay = _initDelayProperty.getValue();
-        if (initdelay > 0)
-            ThreadExtension.sleep(initdelay);
+        try {
+            int initdelay = _initDelayProperty.getValue();
+            if (initdelay > 0)
+                ThreadExtension.sleep(initdelay);
 
-        while (!this.isInterrupted()) {
-            if (_isShutdown.get())
-                return;
-
-            Loops.executeWithoutTightLoop(() -> {
-                try {
-                    _runnable.run();
-                } catch (Throwable ex) {
-                    _logger.error("failed to run scheduled runnable", ex);
-                }
-
+            while (!this.isInterrupted()) {
                 if (_isShutdown.get())
                     return;
 
-                int runInterval = _runIntervalProperty.getValue();
-                if (runInterval > 0)
-                    ThreadExtension.sleep(runInterval);
-            });
+                Loops.executeWithoutTightLoop(() -> {
+                    try {
+                        _runnable.run();
+                    } catch (Throwable ex) {
+                        _logger.error("failed to run scheduled runnable", ex);
+                    }
+
+                    if (_isShutdown.get())
+                        return;
+
+                    int runInterval = _runIntervalProperty.getValue();
+                    if (runInterval > 0)
+                        ThreadExtension.sleep(runInterval);
+                });
+            }
+        } catch (InterruptedRuntimeException ex) {
+            // ignore
         }
     }
 
     public void shutdown() {
         _isShutdown.set(true);
+        interrupt();
     }
 
 }
